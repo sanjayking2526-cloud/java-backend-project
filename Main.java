@@ -1,25 +1,33 @@
-import redis.clients.jedis.Jedis;
+import com.sun.net.httpserver.HttpServer;
+import java.io.IOException;
+import java.io.OutputStream;
+import java.net.InetSocketAddress;
 
 public class Main {
     public static void main(String[] args) {
-        System.out.println("Caching Module Initialized!");
+        // Render கொடுக்கும் போர்ட்டை எடுக்கும், இல்லைனா 10000 போர்ட் எடுக்கும்
+        String portStr = System.getenv("PORT");
+        int port = (portStr != null) ? Integer.parseInt(portStr) : 10000;
 
-        // Connecting to Redis
-        try (Jedis jedis = new Jedis("localhost", 6379)) {
-            jedis.set("test-key", "Hello from Caching Module!");
-            System.out.println("Stored value in Redis: " + jedis.get("test-key"));
-        } catch (Exception e) {
-            System.err.println("Connection failed: " + e.getMessage());
-            System.out.println("Keep running the backend server even if Redis is not connected...");
-        }
-
-        // சர்வர் அப்படியே ஆன்லைனில் தொடர்ந்து நீடிப்பதற்காக ஒரு இன்ஃபினிட் லூப் சேர்க்கிறோம்
         try {
-            while (true) {
-                Thread.sleep(10000); // 10 வினாடிகளுக்கு ஒருமுறை லூப் ஆகும்
-            }
-        } catch (InterruptedException ie) {
-            System.out.println("Server stopped.");
+            // ஒரு சின்ன HTTP சர்வரை கிரியேட் பண்றோம்
+            HttpServer server = HttpServer.create(new InetSocketAddress(port), 0);
+            
+            // ப்ரௌசர்ல லிங்க்கை போட்டா இந்த மெசேஜ் அவுட்புட்டா காட்டும்
+            server.createContext("/", exchange -> {
+                String response = "Java Backend Server is Live! Caching Module Initialized Successfully.";
+                exchange.sendResponseHeaders(200, response.length());
+                try (OutputStream os = exchange.getResponseBody()) {
+                    os.write(response.getBytes());
+                }
+            });
+
+            server.setExecutor(null); 
+            server.start();
+            System.out.println("Server started successfully on port " + port);
+
+        } catch (IOException e) {
+            System.out.println("Server failed to start: " + e.getMessage());
         }
     }
 }
